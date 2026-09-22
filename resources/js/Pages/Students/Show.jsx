@@ -1,7 +1,11 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout';
 
 export default function StudentsShow({ student, parents = [], notes = [], timelines = [], results = [] }) {
+    const noteForm = useForm({ student_id: student.id, title: '', note: '', category: 'General', priority: 'normal', visibility: 'staff_only', follow_up_date: '', follow_up_status: 'not_required' });
+    const timelineForm = useForm({ student_id: student.id, title: '', description: '', event_type: 'general' });
+    const submitNote = (event) => { event.preventDefault(); noteForm.post('/students/notes', { preserveScroll: true, onSuccess: () => noteForm.reset('title', 'note', 'category', 'priority', 'visibility', 'follow_up_date', 'follow_up_status') }); };
+    const submitTimeline = (event) => { event.preventDefault(); timelineForm.post('/students/timeline', { preserveScroll: true, onSuccess: () => timelineForm.reset('title', 'description', 'event_type') }); };
     return (
         <>
             <Head title={`${student.first_name} ${student.last_name}`} />
@@ -13,7 +17,7 @@ export default function StudentsShow({ student, parents = [], notes = [], timeli
                         <p className="mt-2 text-sm text-slate-500">Admission number: {student.admission_no || 'Not assigned'}</p>
                         <p className="mt-1 text-sm text-slate-500">{student.class || 'Class not assigned'} · {student.branch || 'Main school'}</p>
                     </div>
-                    <Link href="/students" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to students</Link>
+                    <div className="flex flex-wrap gap-2"><Link href="/students" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to students</Link><Link href={`/students/${student.id}/edit`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-slate-700">Edit student</Link></div>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-3">
@@ -34,6 +38,17 @@ export default function StudentsShow({ student, parents = [], notes = [], timeli
                         <div className="mt-4 space-y-3">
                             {parents.length ? parents.map((parent) => <div key={parent.id} className="rounded-xl bg-slate-50 p-3"><p className="font-semibold text-slate-900">{parent.name}</p><p className="mt-1 text-xs text-slate-500">{parent.relationship || 'Guardian'} · {parent.phone || 'No phone'}</p><p className="mt-1 text-xs text-slate-500">{parent.email || 'No email'} · {parent.occupation || 'Occupation not provided'}</p><p className="mt-1 text-xs text-slate-500">{parent.address || 'Address not provided'}</p>{parent.is_primary && <p className="mt-2 text-xs font-semibold text-emerald-700">Primary contact</p>}</div>) : <p className="text-sm text-slate-500">No parent linked.</p>}
                         </div>
+                    </section>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900">Add student note</h3>
+                        <form onSubmit={submitNote} className="mt-4 space-y-3"><input required placeholder="Title" value={noteForm.data.title} onChange={(event) => noteForm.setData('title', event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><textarea required placeholder="Write a note" value={noteForm.data.note} onChange={(event) => noteForm.setData('note', event.target.value)} rows={4} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><div className="grid gap-3 sm:grid-cols-2"><input placeholder="Category" value={noteForm.data.category} onChange={(event) => noteForm.setData('category', event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><select value={noteForm.data.priority} onChange={(event) => noteForm.setData('priority', event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"><option value="low">Low priority</option><option value="normal">Normal priority</option><option value="high">High priority</option><option value="urgent">Urgent</option></select></div><button disabled={noteForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">{noteForm.processing ? 'Saving...' : 'Add note'}</button></form>
+                    </section>
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900">Add timeline event</h3>
+                        <form onSubmit={submitTimeline} className="mt-4 space-y-3"><input required placeholder="Event title" value={timelineForm.data.title} onChange={(event) => timelineForm.setData('title', event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><textarea placeholder="Description" value={timelineForm.data.description} onChange={(event) => timelineForm.setData('description', event.target.value)} rows={4} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><input placeholder="Event type" value={timelineForm.data.event_type} onChange={(event) => timelineForm.setData('event_type', event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" /><button disabled={timelineForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">{timelineForm.processing ? 'Saving...' : 'Add timeline event'}</button></form>
                     </section>
                 </div>
 

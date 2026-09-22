@@ -2,38 +2,10 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout';
 
 export default function StudentsIndex({ students = [], parents = [] }) {
-    const noteForm = useForm({
-        student_id: '',
-        title: '',
-        note: '',
-        category: 'General',
-        priority: 'normal',
-        visibility: 'staff_only',
-        follow_up_date: '',
-        follow_up_status: 'not_required',
-    });
-
-    const timelineForm = useForm({
-        student_id: '',
-        title: '',
-        description: '',
-        event_type: 'general',
-    });
-
-    const submitNote = (e) => {
-        e.preventDefault();
-        noteForm.post('/students/notes', {
-            preserveScroll: true,
-            onSuccess: () => noteForm.reset(),
-        });
-    };
-
-    const submitTimeline = (e) => {
-        e.preventDefault();
-        timelineForm.post('/students/timeline', {
-            preserveScroll: true,
-            onSuccess: () => timelineForm.reset(),
-        });
+    const deleteStudent = (student) => {
+        if (window.confirm(`Delete ${student.first_name} ${student.last_name}?`)) {
+            router.delete(`/students/${student.id}`, { preserveScroll: true });
+        }
     };
 
     return (
@@ -63,7 +35,7 @@ export default function StudentsIndex({ students = [], parents = [] }) {
                                     <th className="px-3 py-3 font-semibold">Gender</th>
                                     <th className="px-3 py-3 font-semibold">Date of birth</th>
                                     <th className="px-3 py-3 font-semibold">Status</th>
-                                    <th className="px-3 py-3 font-semibold">Action</th>
+                                    <th className="px-3 py-3 font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -76,7 +48,7 @@ export default function StudentsIndex({ students = [], parents = [] }) {
                                         <td className="px-3 py-4">{student.gender || 'Not specified'}</td>
                                         <td className="px-3 py-4">{student.date_of_birth || 'Not specified'}</td>
                                         <td className="px-3 py-4"><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">{student.status}</span></td>
-                                        <td className="px-3 py-4"><Link href={`/students/${student.id}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Show details</Link></td>
+                                        <td className="px-3 py-4"><div className="flex flex-wrap gap-2"><Link href={`/students/${student.id}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Show details</Link><Link href={`/students/${student.id}/edit`} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Edit</Link><button type="button" onClick={() => deleteStudent(student)} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">Delete</button></div></td>
                                     </tr>
                                 )) : (
                                     <tr><td colSpan="8" className="px-3 py-8 text-center text-slate-500">No student records yet.</td></tr>
@@ -100,45 +72,6 @@ export default function StudentsIndex({ students = [], parents = [] }) {
                     </div>
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-2">
-                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                        <h2 className="text-xl font-semibold text-slate-900">Student notes</h2>
-                        <form onSubmit={submitNote} className="mt-5 space-y-3">
-                            <select value={noteForm.data.student_id} onChange={(e) => noteForm.setData('student_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900">
-                                <option value="">Select student</option>
-                                {students.map((student) => (
-                                    <option key={student.id} value={student.id}>{student.first_name} {student.last_name}</option>
-                                ))}
-                            </select>
-                            <input placeholder="Title" value={noteForm.data.title} onChange={(e) => noteForm.setData('title', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <textarea placeholder="Write a note…" value={noteForm.data.note} onChange={(e) => noteForm.setData('note', e.target.value)} rows={5} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <input placeholder="Category" value={noteForm.data.category} onChange={(e) => noteForm.setData('category', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <div className="grid gap-3 sm:grid-cols-2"><select value={noteForm.data.priority} onChange={(e) => noteForm.setData('priority', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"><option value="low">Low priority</option><option value="normal">Normal priority</option><option value="high">High priority</option><option value="urgent">Urgent</option></select><select value={noteForm.data.visibility} onChange={(e) => noteForm.setData('visibility', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"><option value="private">Private</option><option value="staff_only">Staff only</option><option value="management">Management</option><option value="parent_visible">Parent visible</option></select></div>
-                            <div className="grid gap-3 sm:grid-cols-2"><input type="date" value={noteForm.data.follow_up_date} onChange={(e) => noteForm.setData('follow_up_date', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" /><select value={noteForm.data.follow_up_status} onChange={(e) => noteForm.setData('follow_up_status', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"><option value="not_required">No follow-up</option><option value="pending">Follow-up pending</option><option value="complete">Follow-up complete</option></select></div>
-                            <button type="submit" disabled={noteForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-70">
-                                {noteForm.processing ? 'Saving...' : 'Add note'}
-                            </button>
-                        </form>
-                    </div>
-
-                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                        <h2 className="text-xl font-semibold text-slate-900">Student timeline</h2>
-                        <form onSubmit={submitTimeline} className="mt-5 space-y-3">
-                            <select value={timelineForm.data.student_id} onChange={(e) => timelineForm.setData('student_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900">
-                                <option value="">Select student</option>
-                                {students.map((student) => (
-                                    <option key={student.id} value={student.id}>{student.first_name} {student.last_name}</option>
-                                ))}
-                            </select>
-                            <input placeholder="Event title" value={timelineForm.data.title} onChange={(e) => timelineForm.setData('title', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <textarea placeholder="Description" value={timelineForm.data.description} onChange={(e) => timelineForm.setData('description', e.target.value)} rows={5} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <input placeholder="Event type" value={timelineForm.data.event_type} onChange={(e) => timelineForm.setData('event_type', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
-                            <button type="submit" disabled={timelineForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-70">
-                                {timelineForm.processing ? 'Saving...' : 'Add timeline event'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
             </div>
         </>
     );

@@ -170,7 +170,7 @@ class SchoolController extends Controller
             $request->user()->update(['school_id' => $school->id]);
         }
 
-        return redirect()->route('school.index')->with('success', 'School profile updated successfully.');
+        return redirect()->route('school.details')->with('success', 'School profile updated successfully.');
     }
 
     public function storeAcademicYear(StoreAcademicYearRequest $request)
@@ -188,7 +188,7 @@ class SchoolController extends Controller
             $school->academicYears()->whereKeyNot($academicYear->id)->update(['is_current' => false]);
         }
 
-        return redirect()->route('school.index')->with('success', 'Academic year created successfully.');
+        return redirect()->route('school.details')->with('success', 'Academic year created successfully.');
     }
 
     public function updateAcademicYear(Request $request, AcademicYear $academicYear)
@@ -208,7 +208,7 @@ class SchoolController extends Controller
             $academicYear->school()->first()->academicYears()->whereKeyNot($academicYear->id)->update(['is_current' => false]);
         }
 
-        return redirect()->route('school.index')->with('success', 'Academic year updated successfully.');
+        return redirect()->route('school.details')->with('success', 'Academic year updated successfully.');
     }
 
     public function destroyAcademicYear(AcademicYear $academicYear)
@@ -216,7 +216,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
         $academicYear->delete();
 
-        return redirect()->route('school.index')->with('success', 'Academic year deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'Academic year deleted successfully.');
     }
 
     public function storeTerm(Request $request)
@@ -245,7 +245,7 @@ class SchoolController extends Controller
             $school->terms()->where('academic_year_id', $term->academic_year_id)->whereKeyNot($term->id)->update(['is_current' => false]);
         }
 
-        return redirect()->route('school.index')->with('success', 'Term created successfully.');
+        return redirect()->route('school.details')->with('success', 'Term created successfully.');
     }
 
     public function updateTerm(Request $request, Term $term)
@@ -267,7 +267,7 @@ class SchoolController extends Controller
             $term->school()->first()->terms()->where('academic_year_id', $term->academic_year_id)->whereKeyNot($term->id)->update(['is_current' => false]);
         }
 
-        return redirect()->route('school.index')->with('success', 'Term updated successfully.');
+        return redirect()->route('school.details')->with('success', 'Term updated successfully.');
     }
 
     public function destroyTerm(Term $term)
@@ -275,7 +275,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
         $term->delete();
 
-        return redirect()->route('school.index')->with('success', 'Term deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'Term deleted successfully.');
     }
 
     public function storeDepartment(Request $request)
@@ -296,7 +296,7 @@ class SchoolController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('school.index')->with('success', 'Department created successfully.');
+        return redirect()->route('school.details')->with('success', 'Department created successfully.');
     }
 
     public function updateDepartment(Request $request, Department $department)
@@ -311,7 +311,7 @@ class SchoolController extends Controller
 
         $department->update($data);
 
-        return redirect()->route('school.index')->with('success', 'Department updated successfully.');
+        return redirect()->route('school.details')->with('success', 'Department updated successfully.');
     }
 
     public function destroyDepartment(Department $department)
@@ -319,7 +319,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
         $department->delete();
 
-        return redirect()->route('school.index')->with('success', 'Department deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'Department deleted successfully.');
     }
 
     public function storeClass(Request $request)
@@ -343,7 +343,7 @@ class SchoolController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('school.index')->with('success', 'Class created successfully.');
+        return redirect()->route('school.details')->with('success', 'Class created successfully.');
     }
 
     public function updateClass(Request $request, SchoolClass $schoolClass)
@@ -362,7 +362,7 @@ class SchoolController extends Controller
         }
         $schoolClass->update($data);
 
-        return redirect()->route('school.index')->with('success', 'Class updated successfully.');
+        return redirect()->route('school.details')->with('success', 'Class updated successfully.');
     }
 
     public function destroyClass(SchoolClass $schoolClass)
@@ -370,7 +370,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
         $schoolClass->delete();
 
-        return redirect()->route('school.index')->with('success', 'Class deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'Class deleted successfully.');
     }
 
     public function storeSubject(Request $request)
@@ -391,7 +391,7 @@ class SchoolController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('school.index')->with('success', 'Subject created successfully.');
+        return redirect()->route('school.details')->with('success', 'Subject created successfully.');
     }
 
     public function updateSubject(Request $request, Subject $subject)
@@ -406,7 +406,7 @@ class SchoolController extends Controller
 
         $subject->update($data);
 
-        return redirect()->route('school.index')->with('success', 'Subject updated successfully.');
+        return redirect()->route('school.details')->with('success', 'Subject updated successfully.');
     }
 
     public function destroySubject(Subject $subject)
@@ -414,7 +414,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
         $subject->delete();
 
-        return redirect()->route('school.index')->with('success', 'Subject deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'Subject deleted successfully.');
     }
 
     public function storeBranch(Request $request)
@@ -432,7 +432,7 @@ class SchoolController extends Controller
         abort_unless($school, 422, 'A school is required before adding a branch.');
         $school->branches()->create([...$data, 'code' => strtoupper($data['code']), 'status' => 'active']);
 
-        return redirect()->route('school.index')->with('success', 'School branch created successfully.');
+        return redirect()->route('school.details')->with('success', 'School branch created successfully.');
     }
 
     public function updateBranch(Request $request, SchoolBranch $branch)
@@ -450,7 +450,7 @@ class SchoolController extends Controller
 
         $branch->update([...$data, 'code' => strtoupper($data['code'])]);
 
-        return redirect()->route('school.index')->with('success', 'School branch updated successfully.');
+        return redirect()->route('school.details')->with('success', 'School branch updated successfully.');
     }
 
     public function destroyBranch(Request $request, SchoolBranch $branch)
@@ -459,6 +459,6 @@ class SchoolController extends Controller
         abort_unless($branch->school_id === $request->user()?->school_id, 404);
         $branch->delete();
 
-        return redirect()->route('school.index')->with('success', 'School branch deleted successfully.');
+        return redirect()->route('school.details')->with('success', 'School branch deleted successfully.');
     }
 }

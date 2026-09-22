@@ -181,6 +181,16 @@ class StudentController extends Controller
         return redirect()->route('students.show', $student)->with('success', 'Student record updated successfully.');
     }
 
+    public function destroy(Request $request, Student $student)
+    {
+        Gate::authorize('manage-school-setup');
+        abort_unless($student->school_id === $request->user()->school_id, 404);
+
+        $student->delete();
+
+        return redirect()->route('students.index')->with('success', 'Student record deleted successfully.');
+    }
+
     public function store(Request $request)
     {
         Gate::authorize('manage-school-setup');
@@ -310,7 +320,7 @@ class StudentController extends Controller
         ]);
         $this->recordTimeline($student, 'Note created', $data['title'], 'note_created');
 
-        return redirect()->route('students.index')->with('success', 'Student note saved successfully.');
+        return redirect()->route('students.show', $student)->with('success', 'Student note saved successfully.');
     }
 
     public function storeTimeline(Request $request)
@@ -335,7 +345,7 @@ class StudentController extends Controller
             'occurred_at' => now(),
         ]);
 
-        return redirect()->route('students.index')->with('success', 'Student timeline entry added successfully.');
+        return redirect()->route('students.show', $student)->with('success', 'Student timeline entry added successfully.');
     }
 
     private function recordTimeline(Student $student, string $title, ?string $description, string $eventType): void
