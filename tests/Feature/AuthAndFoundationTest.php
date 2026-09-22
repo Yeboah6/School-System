@@ -46,3 +46,30 @@ it('redirects guests to the login page when they try to access the dashboard', f
 
     $response->assertRedirect('/login');
 });
+
+it('does not authenticate inactive users', function () {
+    $school = School::create(['name' => 'Inactive School']);
+    $role = Role::where('slug', 'super-administrator')->firstOrFail();
+    $user = User::factory()->create([
+        'school_id' => $school->id,
+        'email' => 'inactive@school.test',
+        'password' => bcrypt('password'),
+        'is_active' => false,
+    ]);
+    $user->roles()->attach($role->id);
+
+    $this->post('/login', [
+        'email' => 'inactive@school.test',
+        'password' => 'password',
+    ])->assertSessionHasErrors('email');
+
+    $this->assertGuest();
+});
+
+it('seeds the phase one permission catalog and administrator mappings', function () {
+    $role = Role::where('slug', 'super-administrator')->firstOrFail();
+
+    expect($role->permissions()->where('slug', 'view-system-dashboard')->exists())->toBeTrue()
+        ->and($role->permissions()->where('slug', 'manage-school-setup')->exists())->toBeTrue()
+        ->and($role->permissions()->where('slug', 'manage-student-records')->exists())->toBeTrue();
+});

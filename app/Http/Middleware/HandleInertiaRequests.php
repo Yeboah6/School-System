@@ -35,9 +35,29 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        if ($user) {
+            $user->loadMissing(['school', 'roles.permissions']);
+        }
+
         return [
             ...parent::share($request),
-            //
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'is_active' => (bool) $user->is_active,
+                    'school' => $user->school?->only(['id', 'name', 'currency', 'timezone']),
+                    'roles' => $user->roles->pluck('name')->values(),
+                    'permissions' => $user->roles->flatMap->permissions->pluck('slug')->unique()->values(),
+                ] : null,
+            ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'portal_credentials' => $request->session()->get('portal_credentials'),
+            ],
         ];
     }
 }

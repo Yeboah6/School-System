@@ -4,6 +4,30 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Plus Jakarta Sans', 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-brand: #e5656f;
+}
+
+:root {
+    --app-canvas: #f5f7fb;
+    --app-ink: #1f2937;
+    --app-muted: #7b8794;
+    --app-border: #e6eaf0;
+    --app-sidebar: #202735;
+    --app-accent: #df5c68;
+    --app-accent-soft: #fdecef;
+}
+
+@layer base {
+    body { margin: 0; background: var(--app-canvas); font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+}
+
+@layer components {
+    .app-sidebar { background: var(--app-sidebar); }
+    .app-nav-item { display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px; color: #aab3c1; font-size: 13px; font-weight: 500; transition: background .18s ease, color .18s ease; }
+    .app-nav-item:hover { background: #ffffff0c; color: #fff; }
+    .app-nav-item.is-active { background: var(--app-accent); color: #fff; box-shadow: 0 8px 18px #df5c6838; }
+    .app-topbar { box-shadow: 0 1px 0 #16203308; }
 }

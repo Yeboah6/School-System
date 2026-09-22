@@ -167,6 +167,54 @@ it('stores student and parent records for the school', function () {
     ]);
 });
 
+it('creates a branch and assigns a student with an automatic admission number', function () {
+    [$user, $school] = seedSchoolAdminUser();
+    $branch = $school->branches()->create([
+        'name' => 'North Campus',
+        'code' => 'north',
+        'status' => 'active',
+    ]);
+    $class = $school->classes()->create([
+        'branch_id' => $branch->id,
+        'name' => 'JHS 1A',
+        'level' => 'JHS',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($user)
+        ->post('/students', [
+            'first_name' => 'Yaw',
+            'last_name' => 'Mensah',
+            'branch_id' => $branch->id,
+            'class_id' => $class->id,
+            'parent_name' => 'Ama Mensah',
+            'parent_email' => 'ama@example.test',
+            'parent_phone' => '+233200001111',
+            'parent_address' => 'Accra',
+            'parent_occupation' => 'Accountant',
+            'parent_emergency_contact' => '+233200001112',
+            'relationship' => 'Mother',
+        ])
+        ->assertRedirect('/students');
+
+    $student = $school->students()->where('first_name', 'Yaw')->firstOrFail();
+    expect($student->admission_no)->toBe('AD001')
+        ->and($student->branch_id)->toBe($branch->id)
+        ->and($student->class_id)->toBe($class->id);
+
+    $this->assertDatabaseHas('parents', [
+        'school_id' => $school->id,
+        'email' => 'ama@example.test',
+        'occupation' => 'Accountant',
+        'emergency_contact' => '+233200001112',
+    ]);
+    $this->assertDatabaseHas('student_parent', [
+        'student_id' => $student->id,
+        'relationship' => 'Mother',
+        'is_primary' => true,
+    ]);
+});
+
 it('stores a teacher profile and student notes and timeline', function () {
     [$user, $school] = seedSchoolAdminUser();
     $student = $school->students()->create([
@@ -223,6 +271,42 @@ it('stores a teacher profile and student notes and timeline', function () {
         'student_id' => $student->id,
         'title' => 'Admission complete',
     ]);
+});
+
+it('updates a student lifecycle record and stores staff and parent phase three details', function () {
+    [$user, $school] = seedSchoolAdminUser();
+    $branch = $school->branches()->create(['name' => 'East Campus', 'code' => 'EAST', 'status' => 'active']);
+    $student = $school->students()->create(['first_name' => 'Kojo', 'last_name' => 'Mensah', 'admission_no' => 'AD001', 'status' => 'active']);
+
+    $this->actingAs($user)->put('/students/'.$student->id, [
+        'first_name' => 'Kojo', 'last_name' => 'Mensah', 'gender' => 'Male', 'nationality' => 'Ghanaian',
+        'email' => 'kojo@example.test', 'phone' => '+233200000003', 'status' => 'graduated', 'branch_id' => $branch->id,
+    ])->assertRedirect('/students/'.$student->id);
+
+    $this->actingAs($user)->post('/parents', [
+        'first_name' => 'Adwoa', 'last_name' => 'Mensah', 'email' => 'adwoa@example.test', 'phone' => '+233200000004',
+        'occupation' => 'Nurse', 'relationship_to_student' => 'Mother',
+    ])->assertRedirect();
+
+    $this->actingAs($user)->post('/staff', [
+        'first_name' => 'Daniel', 'last_name' => 'Adu', 'role' => 'Teacher', 'branch_id' => $branch->id,
+        'employee_id' => 'EMP-001', 'qualification' => 'B.Ed Mathematics', 'joining_date' => '2026-09-01',
+    ])->assertRedirect('/staff');
+
+    $this->assertDatabaseHas('students', ['id' => $student->id, 'status' => 'graduated', 'branch_id' => $branch->id, 'email' => 'kojo@example.test']);
+    $this->assertDatabaseHas('parents', ['email' => 'adwoa@example.test', 'occupation' => 'Nurse']);
+    $this->assertDatabaseHas('staff', ['employee_id' => 'EMP-001', 'branch_id' => $branch->id]);
+    $this->assertDatabaseHas('student_timelines', ['student_id' => $student->id, 'event_type' => 'student_updated']);
+});
+
+it('does not allow a user to create a note for another school student', function () {
+    [$user, $school] = seedSchoolAdminUser();
+    $otherSchool = School::create(['name' => 'Other School']);
+    $student = $otherSchool->students()->create(['first_name' => 'Other', 'last_name' => 'Student', 'admission_no' => 'AD001']);
+
+    $this->actingAs($user)->post('/students/notes', [
+        'student_id' => $student->id, 'title' => 'Should fail', 'note' => 'Cross-school note',
+    ])->assertNotFound();
 });
 
 it('allows updating and deleting a school setup record', function () {

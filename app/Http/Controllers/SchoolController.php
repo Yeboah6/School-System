@@ -9,6 +9,7 @@ use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Term;
+use App\Models\SchoolBranch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -21,7 +22,7 @@ class SchoolController extends Controller
         Gate::authorize('manage-school-setup');
 
         $school = $request->user()?->school ?? School::query()->firstOrCreate(
-            ['name' => 'Hillcrest Academy'],
+            ['name' => 'School System'],
             [
                 'email' => 'admin@hillcrest.edu.gh',
                 'phone' => '+233200000000',
@@ -47,8 +48,9 @@ class SchoolController extends Controller
             'academicYears' => $school->academicYears()->orderByDesc('starts_at')->get(['id', 'name', 'starts_at', 'ends_at', 'is_current']),
             'terms' => $school->terms()->orderByDesc('starts_at')->get(['id', 'name', 'starts_at', 'ends_at', 'is_current']),
             'departments' => $school->departments()->orderBy('name')->get(['id', 'name', 'head_name']),
-            'classes' => $school->classes()->orderBy('name')->get(['id', 'name', 'level', 'status']),
+            'classes' => $school->classes()->with('branch:id,name,code')->orderBy('name')->get(['id', 'name', 'level', 'status', 'branch_id']),
             'subjects' => $school->subjects()->orderBy('name')->get(['id', 'name', 'code']),
+            'branches' => $school->branches()->orderBy('name')->get(['id', 'name', 'code', 'address', 'phone', 'status']),
             'stats' => [
                 ['label' => 'Students', 'value' => $school->students()->count(), 'tone' => 'teal'],
                 ['label' => 'Staff', 'value' => $school->staff()->count(), 'tone' => 'rose'],
@@ -78,7 +80,7 @@ class SchoolController extends Controller
         $academicYears = $school->academicYears()->orderByDesc('starts_at')->get();
         $terms = $school->terms()->orderByDesc('starts_at')->get();
         $departments = $school->departments()->orderBy('name')->get();
-        $classes = $school->classes()->orderBy('name')->get();
+        $classes = $school->classes()->with('branch:id,name,code')->orderBy('name')->get();
         $subjects = $school->subjects()->orderBy('name')->get();
 
         return Inertia::render('School/Index', [
@@ -94,43 +96,53 @@ class SchoolController extends Controller
                 'principal_name' => $school->principal_name,
                 'school_type' => $school->school_type,
             ],
-            'academicYears' => $academicYears->map(fn (AcademicYear $year) => [
+            'academicYears' => $academicYears->map(fn(AcademicYear $year) => [
                 'id' => $year->id,
                 'name' => $year->name,
                 'starts_at' => $year->starts_at->format('Y-m-d'),
                 'ends_at' => $year->ends_at->format('Y-m-d'),
                 'is_current' => (bool) $year->is_current,
             ]),
-            'terms' => $terms->map(fn (Term $term) => [
+            'terms' => $terms->map(fn(Term $term) => [
                 'id' => $term->id,
                 'name' => $term->name,
                 'starts_at' => $term->starts_at->format('Y-m-d'),
                 'ends_at' => $term->ends_at->format('Y-m-d'),
                 'is_current' => (bool) $term->is_current,
             ]),
-            'departments' => $departments->map(fn (Department $department) => [
+            'departments' => $departments->map(fn(Department $department) => [
                 'id' => $department->id,
                 'name' => $department->name,
                 'head_name' => $department->head_name,
                 'description' => $department->description,
             ]),
-            'classes' => $classes->map(fn (SchoolClass $schoolClass) => [
+            'classes' => $classes->map(fn(SchoolClass $schoolClass) => [
                 'id' => $schoolClass->id,
                 'name' => $schoolClass->name,
                 'level' => $schoolClass->level,
                 'status' => $schoolClass->status,
+                'branch_id' => $schoolClass->branch_id,
+                'branch' => $schoolClass->branch ? ['id' => $schoolClass->branch->id, 'name' => $schoolClass->branch->name, 'code' => $schoolClass->branch->code] : null,
             ]),
-            'subjects' => $subjects->map(fn (Subject $subject) => [
+            'subjects' => $subjects->map(fn(Subject $subject) => [
                 'id' => $subject->id,
                 'name' => $subject->name,
                 'code' => $subject->code,
                 'description' => $subject->description,
             ]),
+            'branches' => $school->branches()->orderBy('name')->get()->map(fn(SchoolBranch $branch) => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code,
+                'address' => $branch->address,
+                'phone' => $branch->phone,
+                'status' => $branch->status,
+            ]),
             'stats' => [
-                ['label' => 'Total Students', 'value' => 16, 'tone' => 'teal'],
-                ['label' => 'Total Employees', 'value' => 3, 'tone' => 'rose'],
-                ['label' => 'Total Subjects', 'value' => 4, 'tone' => 'amber'],
-                ['label' => 'Total Holidays', 'value' => 7, 'tone' => 'sky'],
+                ['label' => 'Total Students', 'value' => $school->students()->count(), 'tone' => 'teal'],
+                ['label' => 'Staff', 'value' => $school->staff()->count(), 'tone' => 'rose'],
+                ['label' => 'Total Subjects', 'value' => $school->subjects()->count(), 'tone' => 'amber'],
+                ['label' => 'Branches', 'value' => $school->branches()->count(), 'tone' => 'sky'],
             ],
         ]);
     }
@@ -317,12 +329,17 @@ class SchoolController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'level' => ['nullable', 'string', 'max:255'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
         $school = $request->user()?->school ?? School::query()->firstOrCreate(['name' => 'Hillcrest Academy']);
+        if (! empty($data['branch_id'])) {
+            $school->branches()->whereKey($data['branch_id'])->firstOrFail();
+        }
         $school->classes()->create([
             'name' => $data['name'],
             'level' => $data['level'] ?? null,
+            'branch_id' => $data['branch_id'] ?? null,
             'status' => 'active',
         ]);
 
@@ -336,8 +353,13 @@ class SchoolController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'level' => ['nullable', 'string', 'max:255'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
+        abort_unless($schoolClass->school_id === $request->user()?->school_id, 404);
+        if (! empty($data['branch_id'])) {
+            $request->user()->school->branches()->whereKey($data['branch_id'])->firstOrFail();
+        }
         $schoolClass->update($data);
 
         return redirect()->route('school.index')->with('success', 'Class updated successfully.');
@@ -393,5 +415,50 @@ class SchoolController extends Controller
         $subject->delete();
 
         return redirect()->route('school.index')->with('success', 'Subject deleted successfully.');
+    }
+
+    public function storeBranch(Request $request)
+    {
+        Gate::authorize('manage-school-setup');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:30'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $school = $request->user()?->school;
+        abort_unless($school, 422, 'A school is required before adding a branch.');
+        $school->branches()->create([...$data, 'code' => strtoupper($data['code']), 'status' => 'active']);
+
+        return redirect()->route('school.index')->with('success', 'School branch created successfully.');
+    }
+
+    public function updateBranch(Request $request, SchoolBranch $branch)
+    {
+        Gate::authorize('manage-school-setup');
+        abort_unless($branch->school_id === $request->user()?->school_id, 404);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:30'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $branch->update([...$data, 'code' => strtoupper($data['code'])]);
+
+        return redirect()->route('school.index')->with('success', 'School branch updated successfully.');
+    }
+
+    public function destroyBranch(Request $request, SchoolBranch $branch)
+    {
+        Gate::authorize('manage-school-setup');
+        abort_unless($branch->school_id === $request->user()?->school_id, 404);
+        $branch->delete();
+
+        return redirect()->route('school.index')->with('success', 'School branch deleted successfully.');
     }
 }

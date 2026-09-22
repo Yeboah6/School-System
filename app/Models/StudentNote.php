@@ -18,6 +18,11 @@ class StudentNote extends Model
         'title',
         'note',
         'category',
+        'priority',
+        'visibility',
+        'follow_up_date',
+        'follow_up_status',
+        'updated_by',
     ];
 
     public function school()

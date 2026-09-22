@@ -1,0 +1,8 @@
+import { Head } from '@inertiajs/react';
+import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout';
+
+export default function AuditIndex({ logs }) {
+    return <><Head title="Audit log" /><div className="space-y-6"><div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Governance</p><h2 className="mt-1 text-3xl font-bold text-slate-900">Audit log</h2><p className="mt-2 text-sm text-slate-500">Review important changes made in this school workspace.</p></div><section className="overflow-x-auto rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><tr><th className="px-3 py-3">Time</th><th className="px-3 py-3">Action</th><th className="px-3 py-3">User</th><th className="px-3 py-3">Description</th><th className="px-3 py-3">IP</th></tr></thead><tbody className="divide-y divide-slate-100">{logs?.data?.length ? logs.data.map((log) => <tr key={log.id}><td className="px-3 py-4 text-slate-500">{log.created_at}</td><td className="px-3 py-4 font-semibold">{log.action}</td><td className="px-3 py-4">{log.user || 'System'}</td><td className="px-3 py-4">{log.description || '—'}</td><td className="px-3 py-4 text-slate-500">{log.ip_address || '—'}</td></tr>) : <tr><td colSpan="5" className="px-3 py-8 text-center text-slate-500">No audit activity yet.</td></tr>}</tbody></table></section></div></>;
+}
+
+AuditIndex.layout = AuthenticatedLayout;

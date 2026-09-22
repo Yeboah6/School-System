@@ -13,6 +13,7 @@ class SchoolClass extends Model
 
     protected $fillable = [
         'school_id',
+        'branch_id',
         'academic_year_id',
         'name',
         'level',
@@ -27,5 +28,20 @@ class SchoolClass extends Model
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(SchoolBranch::class, 'branch_id');
+    }
+
+    public function students()
+    {
+        return $this->hasMany(Student::class, 'class_id');
+    }
+
+    public function timetableSlots()
+    {
+        return $this->hasMany(TimetableSlot::class, 'class_id');
     }
 }

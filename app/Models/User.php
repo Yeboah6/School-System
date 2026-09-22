@@ -38,6 +38,16 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
+    public function parentProfile()
+    {
+        return $this->hasOne(ParentGuardian::class);
+    }
+
+    public function staffProfile()
+    {
+        return $this->hasOne(Staff::class);
+    }
+
     public function roles()
     {
         return $this->belongsToMany(Role::class);

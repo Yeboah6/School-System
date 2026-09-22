@@ -24,7 +24,27 @@ class LoginController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            if ($request->user()->is_active === false) {
+                Auth::logout();
+
+                return back()->withErrors([
+                    'email' => 'This account is inactive. Contact your school administrator.',
+                ])->onlyInput('email');
+            }
+
             $request->session()->regenerate();
+
+            if ($request->user()->hasRole('Parent')) {
+                return redirect('/parent-portal');
+            }
+
+            if ($request->user()->hasRole('Teacher')) {
+                return redirect('/teacher-portal');
+            }
+
+            if ($request->user()->hasRole('Accountant')) {
+                return redirect('/accountant-portal');
+            }
 
             return redirect()->intended('/dashboard');
         }

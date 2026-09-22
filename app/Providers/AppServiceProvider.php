@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('view-system-dashboard', function (User $user): bool {
-            return $user->hasAnyRole([
+            return $user->is_active !== false && $user->hasAnyRole([
                 'Super Administrator',
                 'School Administrator',
                 'Principal',
@@ -31,11 +31,21 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::define('manage-school-setup', function (User $user): bool {
-            return $user->hasAnyRole([
+            return $user->is_active !== false && $user->hasAnyRole([
                 'Super Administrator',
                 'School Administrator',
                 'Principal',
                 'Vice Principal',
+            ]);
+        });
+
+        Gate::define('manage-finance', function (User $user): bool {
+            return $user->is_active !== false && $user->hasAnyRole([
+                'Super Administrator',
+                'School Administrator',
+                'Principal',
+                'Vice Principal',
+                'Accountant',
             ]);
         });
     }

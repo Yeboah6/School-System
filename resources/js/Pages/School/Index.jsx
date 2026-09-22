@@ -12,8 +12,9 @@ const emptyTerm = { academic_year_id: '', name: '', starts_at: '', ends_at: '', 
 const emptyDepartment = { name: '', head_name: '', description: '' };
 const emptyClass = { name: '', level: '' };
 const emptySubject = { name: '', code: '', description: '' };
+const emptyBranch = { id: '', name: '', code: '', address: '', phone: '', status: 'active' };
 
-export default function SchoolIndex({ school, academicYears, terms, departments, classes, subjects, stats }) {
+export default function SchoolIndex({ school, academicYears, terms, departments, classes, subjects, branches = [], stats }) {
     const { data, setData, post, processing } = useForm({
         name: school?.name || '',
         email: school?.email || '',
@@ -54,6 +55,7 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
         id: '',
         name: '',
         level: '',
+        branch_id: '',
     });
 
     const subjectForm = useForm({
@@ -62,6 +64,8 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
         code: '',
         description: '',
     });
+
+    const branchForm = useForm(emptyBranch);
 
     const handleSchoolSubmit = (e) => {
         e.preventDefault();
@@ -163,6 +167,15 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
 
     const handleSubjectSave = (e) => handleSubjectSubmit(e);
 
+    const handleBranchSubmit = (e) => {
+        e.preventDefault();
+        if (branchForm.data.id) {
+            router.put(`/school/branches/${branchForm.data.id}`, branchForm.data, { preserveScroll: true, onSuccess: () => branchForm.reset() });
+            return;
+        }
+        branchForm.post('/school/branches', { preserveScroll: true, onSuccess: () => branchForm.reset() });
+    };
+
     const currentYear = academicYears?.[0]?.name || 'No academic year';
 
     const deleteEntity = (url) => {
@@ -208,6 +221,7 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
             id: schoolClass.id,
             name: schoolClass.name,
             level: schoolClass.level || '',
+            branch_id: schoolClass.branch_id || '',
         });
     };
 
@@ -219,6 +233,15 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
             description: subject.description || '',
         });
     };
+
+    const handleBranchEdit = (branch) => branchForm.setData({
+        id: branch.id,
+        name: branch.name,
+        code: branch.code || '',
+        address: branch.address || '',
+        phone: branch.phone || '',
+        status: branch.status || 'active',
+    });
 
     return (
         <>
@@ -250,7 +273,7 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
                         <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">School profile</p>
-                                <h2 className="mt-1 text-2xl font-bold text-slate-900">{school?.name || 'Hillcrest Academy'}</h2>
+                                <h2 className="mt-1 text-2xl font-bold text-slate-900">{school?.name || 'School System'}</h2>
                             </div>
                             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Active</span>
                         </div>
@@ -353,6 +376,32 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
 
                 <div className="grid gap-6 xl:grid-cols-2">
                     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900">School branches</h3>
+                        <p className="mt-1 text-sm text-slate-500">Branches are available when assigning classes and students.</p>
+                        <div className="mt-4 space-y-3">
+                            {branches.length ? branches.map((branch) => (
+                                <div key={branch.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                                    <div className="flex items-center justify-between gap-2"><div><span className="font-semibold text-slate-900">{branch.name}</span><span className="ml-2 rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-semibold text-indigo-700">{branch.code}</span></div><div className="flex gap-2"><button type="button" onClick={() => handleBranchEdit(branch)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700">Edit</button><button type="button" onClick={() => deleteEntity(`/school/branches/${branch.id}`)} className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700">Delete</button></div></div>
+                                    <div className="mt-1 text-xs text-slate-500">{branch.address || 'No address'}{branch.phone ? ` · ${branch.phone}` : ''}</div>
+                                </div>
+                            )) : <p className="text-sm text-slate-500">No branches added yet.</p>}
+                        </div>
+                        <form onSubmit={handleBranchSubmit} className="mt-4 space-y-3">
+                            <div className="grid gap-3 sm:grid-cols-2"><input placeholder="Branch name" value={branchForm.data.name} onChange={(e) => branchForm.setData('name', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" /><input placeholder="Code (e.g. NORTH)" value={branchForm.data.code} onChange={(e) => branchForm.setData('code', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" /></div>
+                            <div className="grid gap-3 sm:grid-cols-2"><input placeholder="Address" value={branchForm.data.address} onChange={(e) => branchForm.setData('address', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" /><input placeholder="Phone" value={branchForm.data.phone} onChange={(e) => branchForm.setData('phone', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" /></div>
+                            {branchForm.data.id && <select value={branchForm.data.status} onChange={(e) => branchForm.setData('status', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"><option value="active">Active</option><option value="inactive">Inactive</option></select>}
+                            <button type="submit" disabled={branchForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-70">{branchForm.processing ? 'Saving...' : branchForm.data.id ? 'Update branch' : 'Add branch'}</button>
+                        </form>
+                    </div>
+
+                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900">Classes and branches</h3>
+                        <div className="mt-4 space-y-2">{classes?.length ? classes.map((schoolClass) => <div key={schoolClass.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"><span className="font-medium text-slate-800">{schoolClass.name}</span><span className="text-xs text-slate-500">{schoolClass.branch?.name || 'Main school'}</span></div>) : <p className="text-sm text-slate-500">Create a class after adding a branch.</p>}</div>
+                    </div>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                         <h3 className="text-lg font-semibold text-slate-900">Terms</h3>
                         <div className="mt-4 space-y-3">
                             {terms && terms.length > 0 ? terms.map((term) => (
@@ -427,12 +476,14 @@ export default function SchoolIndex({ school, academicYears, terms, departments,
                                         </div>
                                     </div>
                                     {schoolClass.level && <div className="mt-1 text-xs text-slate-500">Level: {schoolClass.level}</div>}
+                                    <div className="mt-1 text-xs text-indigo-600">Branch: {schoolClass.branch?.name || 'Main school'}</div>
                                 </div>
                             )) : <p className="text-sm text-slate-500">No classes added yet.</p>}
                         </div>
                         <form onSubmit={handleClassSave} className="mt-4 space-y-3">
                             <input placeholder="Class name" value={classForm.data.name} onChange={(e) => classForm.setData('name', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
                             <input placeholder="Level (e.g. JHS / SHS)" value={classForm.data.level} onChange={(e) => classForm.setData('level', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900" />
+                            <select value={classForm.data.branch_id || ''} onChange={(e) => classForm.setData('branch_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"><option value="">Main school / no branch</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>)}</select>
                             <button type="submit" disabled={classForm.processing} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-70">
                                 {classForm.processing ? 'Saving...' : 'Save class'}
                             </button>

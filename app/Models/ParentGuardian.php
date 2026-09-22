@@ -13,11 +13,16 @@ class ParentGuardian extends Model
 
     protected $fillable = [
         'school_id',
+        'user_id',
         'first_name',
         'last_name',
         'email',
         'phone',
         'address',
+        'occupation',
+        'emergency_contact',
+        'emergency_contact_name',
+        'emergency_contact_relationship',
         'relationship_to_student',
         'status',
     ];
@@ -32,5 +37,10 @@ class ParentGuardian extends Model
         return $this->belongsToMany(Student::class, 'student_parent', 'parent_id', 'student_id')
             ->withPivot('relationship', 'is_primary')
             ->withTimestamps();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

@@ -3,16 +3,24 @@ import AuthenticatedLayout from '../../Layouts/AuthenticatedLayout';
 
 const inputClass = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white';
 
-export default function StudentsCreate() {
+export default function StudentsCreate({ classes = [], branches = [] }) {
     const studentForm = useForm({
         first_name: '',
         last_name: '',
         middle_name: '',
         gender: 'Male',
         date_of_birth: '',
-        admission_no: '',
+        admission_no: 'Auto-generated',
+        class_id: '',
+        branch_id: '',
         parent_name: '',
+        parent_first_name: '',
+        parent_last_name: '',
+        parent_email: '',
         parent_phone: '',
+        parent_address: '',
+        parent_occupation: '',
+        parent_emergency_contact: '',
         relationship: '',
     });
 
@@ -70,8 +78,24 @@ export default function StudentsCreate() {
                             <input type="date" value={studentForm.data.date_of_birth} onChange={(event) => studentForm.setData('date_of_birth', event.target.value)} className={`mt-1 ${inputClass}`} />
                         </label>
                         <label className="text-sm font-medium text-slate-700">
+                            Branch
+                            <select value={studentForm.data.branch_id} onChange={(event) => studentForm.setData('branch_id', event.target.value)} className={`mt-1 ${inputClass}`}>
+                                <option value="">Main school / no branch</option>
+                                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>)}
+                            </select>
+                        </label>
+                        <label className="text-sm font-medium text-slate-700">
+                            Class assignment
+                            <select value={studentForm.data.class_id} onChange={(event) => studentForm.setData('class_id', event.target.value)} className={`mt-1 ${inputClass}`}>
+                                <option value="">Assign later</option>
+                                {classes.filter((schoolClass) => !studentForm.data.branch_id || !schoolClass.branch_id || String(schoolClass.branch_id) === String(studentForm.data.branch_id)).map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.name}{schoolClass.level ? ` · ${schoolClass.level}` : ''}</option>)}
+                            </select>
+                            <span className="mt-1 block text-xs font-normal text-slate-400">Students are assigned through this class field.</span>
+                        </label>
+                        <label className="text-sm font-medium text-slate-700">
                             Admission number
-                            <input value={studentForm.data.admission_no} onChange={(event) => studentForm.setData('admission_no', event.target.value)} className={`mt-1 ${inputClass}`} />
+                            <input readOnly value={studentForm.data.admission_no} className={`mt-1 cursor-not-allowed ${inputClass} bg-slate-100 text-slate-500`} />
+                            <span className="mt-1 block text-xs font-normal text-slate-400">Generated automatically in AD123 format.</span>
                         </label>
                     </div>
 
@@ -90,8 +114,24 @@ export default function StudentsCreate() {
                             <input value={studentForm.data.parent_phone} onChange={(event) => studentForm.setData('parent_phone', event.target.value)} className={`mt-1 ${inputClass}`} />
                         </label>
                         <label className="text-sm font-medium text-slate-700">
+                            Email
+                            <input type="email" value={studentForm.data.parent_email} onChange={(event) => studentForm.setData('parent_email', event.target.value)} className={`mt-1 ${inputClass}`} />
+                        </label>
+                        <label className="text-sm font-medium text-slate-700">
                             Relationship
                             <input placeholder="Father, mother, guardian" value={studentForm.data.relationship} onChange={(event) => studentForm.setData('relationship', event.target.value)} className={`mt-1 ${inputClass}`} />
+                        </label>
+                        <label className="text-sm font-medium text-slate-700">
+                            Occupation
+                            <input value={studentForm.data.parent_occupation} onChange={(event) => studentForm.setData('parent_occupation', event.target.value)} className={`mt-1 ${inputClass}`} />
+                        </label>
+                        <label className="text-sm font-medium text-slate-700">
+                            Emergency contact
+                            <input value={studentForm.data.parent_emergency_contact} onChange={(event) => studentForm.setData('parent_emergency_contact', event.target.value)} className={`mt-1 ${inputClass}`} />
+                        </label>
+                        <label className="text-sm font-medium text-slate-700 md:col-span-2">
+                            Address
+                            <textarea rows="2" value={studentForm.data.parent_address} onChange={(event) => studentForm.setData('parent_address', event.target.value)} className={`mt-1 ${inputClass}`} />
                         </label>
                     </div>
 

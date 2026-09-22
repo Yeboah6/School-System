@@ -8,7 +8,7 @@ const statColorMap = {
     sky: 'bg-sky-100 text-sky-700',
 };
 
-export default function SchoolOverview({ school, academicYears = [], terms = [], departments = [], classes = [], subjects = [], stats = [] }) {
+export default function SchoolOverview({ school, academicYears = [], terms = [], departments = [], classes = [], subjects = [], branches = [], stats = [] }) {
     return (
         <>
             <Head title="School overview" />
@@ -73,6 +73,11 @@ export default function SchoolOverview({ school, academicYears = [], terms = [],
                         </section>
                     ))}
                 </div>
+
+                <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between"><div><h3 className="text-lg font-semibold text-slate-900">School branches</h3><p className="mt-1 text-sm text-slate-500">Manage campuses from the school details workspace.</p></div><Link href="/school/details" className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Manage branches</Link></div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{branches.length ? branches.map((branch) => <div key={branch.id} className="rounded-xl bg-slate-50 p-3"><p className="font-semibold text-slate-900">{branch.name}</p><p className="mt-1 text-xs text-slate-500">{branch.code} · {branch.address || 'No address'}</p></div>) : <p className="text-sm text-slate-500">No branches added yet.</p>}</div>
+                </section>
             </div>
         </>
     );
