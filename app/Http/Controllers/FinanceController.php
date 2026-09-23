@@ -22,6 +22,7 @@ class FinanceController extends Controller
         $invoices = $school->invoices()->with('student')->latest()->paginate(20)->withQueryString();
 
         return Inertia::render('Finance/Index', [
+            'canManageFeeSetup' => $request->user()->roles()->whereIn('slug', ['super-administrator', 'school-administrator', 'principal'])->exists(),
             'feeTypes' => $school->feeTypes()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'code']),
             'structures' => $school->feeStructures()->with(['feeType', 'schoolClass'])->latest()->get()->map(fn (FeeStructure $structure) => [
                 'id' => $structure->id, 'fee_type' => $structure->feeType->name, 'class' => $structure->schoolClass?->name,
@@ -45,6 +46,7 @@ class FinanceController extends Controller
     public function storeFeeType(Request $request, AuditService $audit)
     {
         Gate::authorize('manage-finance');
+        $this->authorizeFeeSetup($request);
         $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'max:30']]);
         $feeType = $request->user()->school->feeTypes()->create([...$data, 'code' => strtoupper($data['code']), 'status' => 'active']);
         $audit->record($request, 'finance.fee_type_created', 'Fee type created.', $feeType);
@@ -54,6 +56,7 @@ class FinanceController extends Controller
     public function storeStructure(Request $request, AuditService $audit)
     {
         Gate::authorize('manage-finance');
+        $this->authorizeFeeSetup($request);
         $data = $request->validate([
             'fee_type_id' => ['required', 'integer'], 'academic_year_id' => ['nullable', 'integer'], 'term_id' => ['nullable', 'integer'],
             'class_id' => ['nullable', 'integer'], 'amount' => ['required', 'numeric', 'min:0'], 'due_date' => ['nullable', 'date'],
@@ -89,4 +92,10 @@ class FinanceController extends Controller
         $audit->record($request, 'finance.payment_recorded', 'Invoice payment recorded.', $payment);
         return back()->with('success', 'Payment recorded successfully.');
     }
+
+    private function authorizeFeeSetup(Request $request): void
+    {
+        abort_unless($request->user()->roles()->whereIn('slug', ['super-administrator', 'school-administrator', 'principal'])->exists(), 403, 'Only an administrator or principal can configure fee types and fee structures.');
+    }
+
 }

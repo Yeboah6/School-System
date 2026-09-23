@@ -56,4 +56,11 @@ class Staff extends Model
     {
         return $this->hasMany(TimetableSlot::class);
     }
+
+    public function classes()
+    {
+        return $this->belongsToMany(SchoolClass::class, 'class_staff', 'staff_id', 'class_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
 }

@@ -142,7 +142,12 @@ class StudentController extends Controller
         $school = $request->user()->school;
 
         return Inertia::render('Students/Edit', [
-            'student' => $student->only(['id', 'student_id', 'first_name', 'last_name', 'middle_name', 'gender', 'nationality', 'email', 'phone', 'address', 'date_of_birth', 'admission_date', 'previous_school', 'student_type', 'status', 'class_id', 'branch_id']),
+            'student' => [
+                ...$student->only(['id', 'student_id', 'admission_no', 'first_name', 'last_name', 'middle_name', 'gender', 'nationality', 'email', 'phone', 'address', 'previous_school', 'student_type', 'status', 'class_id', 'branch_id']),
+                'date_of_birth' => $student->date_of_birth?->format('Y-m-d'),
+                'admission_date' => $student->admission_date?->format('Y-m-d'),
+                ...$this->editParentData($student),
+            ],
             'classes' => $school->classes()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'level', 'branch_id']),
             'branches' => $school->branches()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'code']),
         ]);
@@ -168,6 +173,13 @@ class StudentController extends Controller
             'status' => ['required', 'in:applicant,active,graduated,transferred,withdrawn,suspended'],
             'class_id' => ['nullable', 'integer'],
             'branch_id' => ['nullable', 'integer'],
+            'parent_name' => ['nullable', 'string', 'max:255'],
+            'parent_email' => ['nullable', 'email', 'max:255'],
+            'parent_phone' => ['nullable', 'string', 'max:255'],
+            'relationship' => ['nullable', 'string', 'max:255'],
+            'parent_address' => ['nullable', 'string', 'max:500'],
+            'parent_occupation' => ['nullable', 'string', 'max:255'],
+            'parent_emergency_contact' => ['nullable', 'string', 'max:255'],
         ]);
 
         $school = $request->user()->school;
@@ -176,6 +188,20 @@ class StudentController extends Controller
         abort_if($class && $branch && $class->branch_id && $class->branch_id !== $branch->id, 422, 'The selected class does not belong to the selected branch.');
 
         $student->update([...$data, 'branch_id' => $branch?->id ?? $class?->branch_id]);
+        $parentData = collect($data)->only(['parent_name', 'parent_email', 'parent_phone', 'relationship', 'parent_address', 'parent_occupation', 'parent_emergency_contact']);
+        if ($parentData->filter()->isNotEmpty()) {
+            $parent = $student->parents()->wherePivot('is_primary', true)->first() ?? new ParentGuardian(['school_id' => $student->school_id]);
+            $nameParts = preg_split('/\s+/', trim((string) $parentData->get('parent_name', 'Parent')));
+            $parent->fill([
+                'first_name' => $nameParts[0] ?? 'Parent',
+                'last_name' => count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : null,
+                'email' => $parentData->get('parent_email'), 'phone' => $parentData->get('parent_phone'),
+                'relationship_to_student' => $parentData->get('relationship'), 'address' => $parentData->get('parent_address'),
+                'occupation' => $parentData->get('parent_occupation'), 'emergency_contact' => $parentData->get('parent_emergency_contact'),
+                'status' => 'active',
+            ])->save();
+            $student->parents()->syncWithoutDetaching([$parent->id => ['relationship' => $parentData->get('relationship'), 'is_primary' => true]]);
+        }
         $this->recordTimeline($student, 'Student updated', 'Student profile or assignment updated.', 'student_updated');
 
         return redirect()->route('students.show', $student)->with('success', 'Student record updated successfully.');
@@ -201,6 +227,13 @@ class StudentController extends Controller
             'middle_name' => ['nullable', 'string', 'max:255'],
             'gender' => ['nullable', 'string', 'max:50'],
             'date_of_birth' => ['nullable', 'date'],
+            'nationality' => ['nullable', 'string', 'max:100'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'admission_date' => ['nullable', 'date'],
+            'previous_school' => ['nullable', 'string', 'max:255'],
+            'student_type' => ['nullable', 'string', 'max:100'],
             'admission_no' => ['nullable', 'string', 'max:100'],
             'class_id' => ['nullable', 'integer'],
             'branch_id' => ['nullable', 'integer'],
@@ -228,13 +261,21 @@ class StudentController extends Controller
             abort(422, 'The selected class does not belong to the selected branch.');
         }
 
-        $credentials = DB::transaction(function () use ($school, $data, $class, $branch): ?array {
+        $student = null;
+        $credentials = DB::transaction(function () use ($school, $data, $class, $branch, &$student): ?array {
             $student = $school->students()->create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'middle_name' => $data['middle_name'] ?? null,
                 'gender' => $data['gender'] ?? null,
+                'nationality' => $data['nationality'] ?? null,
+                'email' => $data['email'] ?? null,
+                'phone' => $data['phone'] ?? null,
+                'address' => $data['address'] ?? null,
                 'date_of_birth' => $data['date_of_birth'] ?? null,
+                'admission_date' => $data['admission_date'] ?? null,
+                'previous_school' => $data['previous_school'] ?? null,
+                'student_type' => $data['student_type'] ?? null,
                 'class_id' => $class?->id,
                 'branch_id' => $branch?->id ?? $class?->branch_id,
                 'admission_no' => ! empty($data['admission_no']) && $data['admission_no'] !== 'Auto-generated'
@@ -274,7 +315,7 @@ class StudentController extends Controller
             return $credentials;
         });
 
-        return redirect()->route('students.index')
+        return redirect()->route('students.show', $student)
             ->with('success', 'Student record created successfully.')
             ->with('portal_credentials', $credentials);
     }
@@ -288,6 +329,21 @@ class StudentController extends Controller
             ->max() ?: 0;
 
         return 'AD' . str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT);
+    }
+
+    private function editParentData(Student $student): array
+    {
+        $parent = $student->parents()->wherePivot('is_primary', true)->first();
+
+        return [
+            'parent_name' => $parent ? trim($parent->first_name . ' ' . $parent->last_name) : '',
+            'parent_email' => $parent?->email ?? '',
+            'parent_phone' => $parent?->phone ?? '',
+            'relationship' => $parent?->pivot?->relationship ?: ($parent?->relationship_to_student ?? ''),
+            'parent_address' => $parent?->address ?? '',
+            'parent_occupation' => $parent?->occupation ?? '',
+            'parent_emergency_contact' => $parent?->emergency_contact ?? '',
+        ];
     }
 
     public function storeNote(Request $request)

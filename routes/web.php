@@ -68,7 +68,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/overview', [StaffController::class, 'overview'])->name('staff.overview');
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
+    Route::get('/staff/{staff}/edit', [StaffController::class, 'edit'])->name('staff.edit');
+    Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('staff.show');
     Route::put('/staff/{staff}', [StaffController::class, 'update'])->name('staff.update');
+    Route::delete('/staff/{staff}', [StaffController::class, 'destroy'])->name('staff.destroy');
+    Route::post('/staff/{staff}/classes', [StaffController::class, 'assignClass'])->name('staff.classes.assign');
+    Route::delete('/staff/{staff}/classes/{schoolClass}', [StaffController::class, 'unassignClass'])->name('staff.classes.unassign');
 
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');

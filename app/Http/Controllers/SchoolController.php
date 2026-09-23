@@ -118,6 +118,7 @@ class SchoolController extends Controller
             ]),
             'classes' => $classes->map(fn(SchoolClass $schoolClass) => [
                 'id' => $schoolClass->id,
+                'academic_year' => $schoolClass->academic_year_id,
                 'name' => $schoolClass->name,
                 'level' => $schoolClass->level,
                 'status' => $schoolClass->status,
