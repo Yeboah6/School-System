@@ -107,18 +107,48 @@ it('stores a new department for the school', function () {
 
 it('stores a new class for the school', function () {
     [$user, $school] = seedSchoolAdminUser();
+    $academicYear = $school->academicYears()->create([
+        'name' => '2026/2027',
+        'starts_at' => '2026-09-01',
+        'ends_at' => '2027-07-31',
+        'is_current' => true,
+    ]);
 
     $this->actingAs($user)
         ->post('/school/classes', [
             'name' => 'JHS 2',
             'level' => 'JHS',
+            'academic_year_id' => $academicYear->id,
         ])
         ->assertRedirect('/school');
 
     $this->assertDatabaseHas('classes', [
         'school_id' => $school->id,
         'name' => 'JHS 2',
+        'academic_year_id' => $academicYear->id,
     ]);
+});
+
+it('includes the academic year on the class details payload', function () {
+    [$user, $school] = seedSchoolAdminUser();
+    $academicYear = $school->academicYears()->create([
+        'name' => '2026/2027',
+        'starts_at' => '2026-09-01',
+        'ends_at' => '2027-07-31',
+        'is_current' => true,
+    ]);
+    $school->classes()->create([
+        'name' => 'JHS 2',
+        'level' => 'JHS',
+        'academic_year_id' => $academicYear->id,
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/school/details')
+        ->assertOk()
+        ->assertJsonPath('classes.0.academic_year_id', $academicYear->id)
+        ->assertJsonPath('classes.0.academicYear.name', '2026/2027');
 });
 
 it('stores a new subject for the school', function () {

@@ -14,7 +14,7 @@ export default function Login() {
 
     return (
         <>
-            <Head title="Login" />
+            <Head title="SMS | Login" />
             <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
                 <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
                     <div className="mb-8">

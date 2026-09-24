@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from "@inertiajs/react";
+import { useState } from 'react';
 import AuthenticatedLayout from "../../Layouts/AuthenticatedLayout";
 
 const statColorMap = {
@@ -16,7 +17,7 @@ const emptyTerm = {
     is_current: true,
 };
 const emptyDepartment = { name: "", head_name: "", description: "" };
-const emptyClass = { name: "", level: "" };
+const emptyClass = { name: "", level: "", academic_year_id: "", branch_id: "" };
 const emptySubject = { name: "", code: "", description: "" };
 const emptyBranch = {
     id: "",
@@ -77,6 +78,7 @@ export default function SchoolIndex({
         id: "",
         name: "",
         level: "",
+        academic_year_id: academicYears?.[0]?.id || "",
         branch_id: "",
     });
 
@@ -117,22 +119,40 @@ export default function SchoolIndex({
         });
     };
 
+    const [editingTermId, setEditingTermId] = useState(null);
+
+    
     const handleTermSubmit = (e) => {
         e.preventDefault();
-
-        if (termForm.data.id) {
-            router.put(`/school/terms/${termForm.data.id}`, termForm.data, {
-                preserveScroll: true,
-                onSuccess: () => termForm.reset(),
-            });
-            return;
-        }
-
-        termForm.post("/school/terms", {
+        
+        const options = {
             preserveScroll: true,
-            onSuccess: () => termForm.reset(),
-        });
+            onSuccess: () => resetTermForm(),
+        };
+    
+        if (editingTermId) {
+            termForm.put(`/school/terms/${editingTermId}`, options);
+        } else {
+            termForm.post('/school/terms', options);
+        }
     };
+
+    // const handleTermSubmit = (e) => {
+    //     e.preventDefault();
+
+    //     if (termForm.data.id) {
+    //         router.put(`/school/terms/${termForm.data.id}`, termForm.data, {
+    //             preserveScroll: true,
+    //             onSuccess: () => termForm.reset(),
+    //         });
+    //         return;
+    //     }
+
+    //     termForm.post("/school/terms", {
+    //         preserveScroll: true,
+    //         onSuccess: () => termForm.reset(),
+    //     });
+    // };
 
     const handleTermSave = (e) => handleTermSubmit(e);
 
@@ -238,15 +258,19 @@ export default function SchoolIndex({
     };
 
     const handleTermEdit = (term) => {
+        setEditingTermId(term.id);
         termForm.setData({
-            id: term.id,
-            academic_year_id:
-                term.academic_year_id || academicYears?.[0]?.id || "",
+            academic_year_id: term.academic_year_id,
             name: term.name,
             starts_at: term.starts_at,
             ends_at: term.ends_at,
-            is_current: Boolean(term.is_current),
+            is_current: term.is_current,
         });
+    };
+
+    const resetTermForm = () => {
+        setEditingTermId(null);
+        termForm.reset();
     };
 
     const handleDepartmentEdit = (department) => {
@@ -263,6 +287,7 @@ export default function SchoolIndex({
             id: schoolClass.id,
             name: schoolClass.name,
             level: schoolClass.level || "",
+            academic_year_id: schoolClass.academic_year_id || schoolClass.academicYear?.id || academicYears?.[0]?.id || "",
             branch_id: schoolClass.branch_id || "",
         });
     };
@@ -798,6 +823,10 @@ export default function SchoolIndex({
                                                 Current
                                             </div>
                                         )}
+                                        <div className="mt-1 text-xs text-indigo-600">
+                                            Academic year:{" "}
+                                            {term.academicYear?.name}
+                                        </div>
                                         <div className="mt-2 text-xs text-slate-500">
                                             {term.starts_at} to {term.ends_at}
                                         </div>
@@ -809,10 +838,32 @@ export default function SchoolIndex({
                                 </p>
                             )}
                         </div>
+                        <br />
+                        <hr />
                         <form
                             onSubmit={handleTermSave}
                             className="mt-4 space-y-3"
                         >
+                            <select
+                                value={classForm.data.academic_year_id || ""}
+                                onChange={(e) =>
+                                    classForm.setData(
+                                        "academic_year_id",
+                                        e.target.value,
+                                    )
+                                }
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"
+                            >
+                                <option value="">
+                                    Select academic year
+                                </option>
+                                {academicYears?.map((year) => (
+                                    <option key={year.id} value={year.id}>
+                                        {year.name}
+                                    </option>
+                                ))}
+                            </select>
+
                             <input
                                 placeholder="Term name"
                                 value={termForm.data.name}
@@ -864,9 +915,20 @@ export default function SchoolIndex({
                                 className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-70"
                             >
                                 {termForm.processing
-                                    ? "Saving..."
-                                    : "Save term"}
+                                    ? 'Saving...'
+                                    : editingTermId
+                                      ? 'Update term'
+                                      : 'Save term'}
                             </button>
+                            {editingTermId && (
+                                <button
+                                    type="button"
+                                    onClick={resetTermForm}
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
+                                >
+                                    Cancel edit
+                                </button>
+                            )}
                         </form>
                     </div>
 
@@ -999,8 +1061,7 @@ export default function SchoolIndex({
                                             
                                             <div className="mt-1 text-xs text-indigo-600">
                                                 Academic year:{" "}
-                                                {schoolClass.academicYear?.name ||
-                                                    "Main school"}
+                                                {schoolClass.academicYear?.name}
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
@@ -1052,21 +1113,21 @@ export default function SchoolIndex({
                             className="mt-4 space-y-3"
                         >
                             <select
-                                value={classForm.data.branch_id || ""}
+                                value={classForm.data.academic_year_id || ""}
                                 onChange={(e) =>
                                     classForm.setData(
-                                        "branch_id",
+                                        "academic_year_id",
                                         e.target.value,
                                     )
                                 }
                                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"
                             >
                                 <option value="">
-                                    Academic year
+                                    Select academic year
                                 </option>
-                                {branches.map((branch) => (
-                                    <option key={branch.id} value={branch.id}>
-                                        {branch.name} ({branch.code})
+                                {academicYears?.map((year) => (
+                                    <option key={year.id} value={year.id}>
+                                        {year.name}
                                     </option>
                                 ))}
                             </select>
@@ -1097,7 +1158,7 @@ export default function SchoolIndex({
                                 }
                                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900"
                             >
-                                <option>
+                                <option value="">
                                     Not specified
                                 </option>
                                 {branches.map((branch) => (

@@ -80,7 +80,7 @@ class SchoolController extends Controller
         $academicYears = $school->academicYears()->orderByDesc('starts_at')->get();
         $terms = $school->terms()->orderByDesc('starts_at')->get();
         $departments = $school->departments()->orderBy('name')->get();
-        $classes = $school->classes()->with('branch:id,name,code')->orderBy('name')->get();
+        $classes = $school->classes()->with(['branch:id,name,code', 'academicYear:id,name'])->orderBy('name')->get();
         $subjects = $school->subjects()->orderBy('name')->get();
 
         return Inertia::render('School/Index', [
@@ -106,6 +106,8 @@ class SchoolController extends Controller
             'terms' => $terms->map(fn(Term $term) => [
                 'id' => $term->id,
                 'name' => $term->name,
+                'academic_year_id' => $term->academic_year_id,
+                'academicYear' => $term->academicYear ? ['id' => $term->academicYear->id, 'name' => $term->academicYear->name] : null,
                 'starts_at' => $term->starts_at->format('Y-m-d'),
                 'ends_at' => $term->ends_at->format('Y-m-d'),
                 'is_current' => (bool) $term->is_current,
@@ -118,7 +120,8 @@ class SchoolController extends Controller
             ]),
             'classes' => $classes->map(fn(SchoolClass $schoolClass) => [
                 'id' => $schoolClass->id,
-                'academic_year' => $schoolClass->academic_year_id,
+                'academic_year_id' => $schoolClass->academic_year_id,
+                'academicYear' => $schoolClass->academicYear ? ['id' => $schoolClass->academicYear->id, 'name' => $schoolClass->academicYear->name] : null,
                 'name' => $schoolClass->name,
                 'level' => $schoolClass->level,
                 'status' => $schoolClass->status,
@@ -232,7 +235,7 @@ class SchoolController extends Controller
             'is_current' => ['nullable', 'boolean'],
         ]);
 
-        $school = $request->user()?->school ?? School::query()->firstOrCreate(['name' => 'Hillcrest Academy']);
+        $school = $request->user()?->school ?? School::query()->firstOrCreate(['name' => 'School System']);
         $term = $school->terms()->create([
             'academic_year_id' => $data['academic_year_id'],
             'name' => $data['name'],
@@ -330,16 +333,21 @@ class SchoolController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'level' => ['nullable', 'string', 'max:255'],
+            'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
             'branch_id' => ['nullable', 'integer'],
         ]);
 
         $school = $request->user()?->school ?? School::query()->firstOrCreate(['name' => 'Hillcrest Academy']);
+        if (! empty($data['academic_year_id'])) {
+            $school->academicYears()->whereKey($data['academic_year_id'])->firstOrFail();
+        }
         if (! empty($data['branch_id'])) {
             $school->branches()->whereKey($data['branch_id'])->firstOrFail();
         }
         $school->classes()->create([
             'name' => $data['name'],
             'level' => $data['level'] ?? null,
+            'academic_year_id' => $data['academic_year_id'] ?? null,
             'branch_id' => $data['branch_id'] ?? null,
             'status' => 'active',
         ]);
@@ -354,12 +362,16 @@ class SchoolController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'level' => ['nullable', 'string', 'max:255'],
+            'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
             'branch_id' => ['nullable', 'integer'],
         ]);
 
         abort_unless($schoolClass->school_id === $request->user()?->school_id, 404);
+        if (! empty($data['academic_year_id'])) {
+            $request->user()?->school?->academicYears()->whereKey($data['academic_year_id'])->firstOrFail();
+        }
         if (! empty($data['branch_id'])) {
-            $request->user()->school->branches()->whereKey($data['branch_id'])->firstOrFail();
+            $request->user()?->school?->branches()->whereKey($data['branch_id'])->firstOrFail();
         }
         $schoolClass->update($data);
 
